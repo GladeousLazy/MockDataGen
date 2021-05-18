@@ -12,10 +12,12 @@ from IPython.display import clear_output
 
 
 ################################ Data Generator Class Definition (Com. 2) ###############################
+
 class DataGen:
         
     
     ################################## Check if folder/file exists (Com. 3) ##################################
+    
     def Folder_Check(self):
         
         file_location = '\\'.join(self.fileloc.split('\\')[:-1]) + '\\Output_File\\'
@@ -26,13 +28,16 @@ class DataGen:
 
         else:
             print('"' + file_location + '"' + " folder already exists.")
+
     ############################################# End of Com. 3 #############################################
 
     
 
     ######################### Seed function to generate true random number (Com. 4) #########################
+    
     def sys_rand_seed():
         return int(tm.time() * 100000000000) % 100000000000
+    
     ############################################# End of Com. 4 #############################################
 
     
@@ -61,6 +66,7 @@ class DataGen:
     def Generate_Name(self, dim_df, srow):
         for index in range(srow["No of Rows"]):
             dim_df[index] = 'FN' + str(index + 1) + ' ' + 'LN' + str(index + 1)
+
     ############################################# End of Com. 6 #############################################
 
     ###################################### Generate Random Age (Com. 7) ######################################
@@ -73,14 +79,14 @@ class DataGen:
             srow["Max Value"]) != str else 70
 
         for index in range(srow["No of Rows"]):
-            rn.seed(sys_rand_seed() + index)
+            rn.seed(self.sys_rand_seed() + index)
             dim_df[index] = int(rn.randint((min_age), (max_age)))
     ############################################# End of Com. 7 #############################################
     
     
     ########################### Generate ID Value usually a Serial Number (Com. 8) ###########################
 
-    def Create_ID_Column(srow):
+    def Create_ID_Column(self, srow):
         id_df = {}
         if (srow["Key type PK or FK"] == 'PK'):
             for index in range(srow["No of Rows"]):
@@ -96,7 +102,7 @@ class DataGen:
     
     ############################## Generate Dimension/Discrete Values (Com. 9) ##############################
 
-    def Create_Dim_Column(srow, nRows=None):
+    def Create_Dim_Column(self, srow, nRows=None):
         """
         The Create_Dim_Columnn() needs to handle the below conditions
         1. Prefix & Suffix - Done
@@ -151,9 +157,9 @@ class DataGen:
         elif (srow["Functional Category"] != ''):
             cat = srow["Functional Category"]
             if (cat == 'Name'):
-                Generate_Name(dim_df, srow)
+                self.Generate_Name(dim_df, srow)
             elif (cat == 'Age'):
-                Generate_Age(dim_df, srow)
+                self.Generate_Age(dim_df, srow)
 
         #Scenario where PK or FK is present
         elif (srow["Key type PK or FK"] != ''):
@@ -164,25 +170,25 @@ class DataGen:
 
                 #This function is used to get the min and max value in a column
 
-                if parent_table in All_Table_Key_Dict:
+                if parent_table in self.All_Table_Key_Dict:
                     # It will get the values from the reference table which will mostly be Dim Tables
                     min_index = 1
                     max_index = max(
-                        All_Table_Key_Dict[parent_table][parent_column].values())
+                        self.All_Table_Key_Dict[parent_table][parent_column].values())
 
                 else:
-                    Create_Dim_Table(parent_table)
+                    self.Create_Dim_Table(parent_table)
                     min_index = 1
-                    max_index = All_Table_Key_Dict[parent_table][
+                    max_index = self.All_Table_Key_Dict[parent_table][
                         parent_column].max()
 
                 for index in range(total_rows):
                     # This loop will fill the data frame with the total number of rows as defined for the table
-                    rn.seed(sys_rand_seed() + index)
+                    rn.seed(self.sys_rand_seed() + index)
                     dim_df[index] = rn.randint(min_index, max_index)
 
             elif (srow["Key type PK or FK"] == 'PK'):
-                dim_df = Create_ID_Column(srow)
+                dim_df = self.Create_ID_Column(srow)
         else:
             for index in range(total_rows):
                 dim_df[index] = default_label + str(min_value + index + 1)
