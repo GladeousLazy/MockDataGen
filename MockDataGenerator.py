@@ -24,7 +24,7 @@ class DataGen:
             print("created folder : ", self.output_file_location)
 
         else:
-            print('"' + self.output_file_location + '"' + " folder already exists.")
+            print('"' + self.output_file_location + '"' + " folder already exists./n The data in the folder will be overwritten")
     ############################################# End of Com. 3 #############################################
 
     
@@ -39,8 +39,8 @@ class DataGen:
     ###################################### Initialize Function (Com. 5) ######################################
     def __init__(self):
         
-        self.fileloc =  'C:\Work\Python\Mock Data Generator\Mock Data Generator - Metadata File.xlsx'#input('Please enter the Location of the Excel file: ')
-        self.sheetname = 'Column Metadata'#input('Please enter the sheet name: ')
+        self.fileloc =  input('Please enter the Location of the Excel file: ')#'C:\Work\Python\Mock Data Generator\Mock Data Generator - Metadata File.xlsx'#
+        self.sheetname = input('Please enter the sheet name: ')#'Column Metadata'#
         self.output_file_location = '\\'.join(self.fileloc.split('\\')[:-1]) + '\\Output_File\\'
         self.Folder_Check()
         
@@ -311,12 +311,34 @@ class DataGen:
     ############################################# End of Com. 19 #############################################
 
 
+    
 
-    ############################## Modify data in the existing table (Com. 20) ##############################
-    def ModifyDataInTable(self,tablename, file=None, sheetname = 'Sheet1'):
+    ################################# Generate Unique Set of value (Com. 27) #################################
+    def Generate_Unique_Set(self, datadict):
+        temp_dict = {}
+
+        #this code will make sure that the values are unique
+        for col in datadict:
+            temp_dict[col] = {}
+            counter = 0
+            for index, value in datadict[col].items():
+                if value in temp_dict[col].values():
+                    continue
+                else:
+                    temp_dict[col][counter] = value
+                    counter += 1
+        return temp_dict
+    ############################################# End of Com. 27 #############################################
+
+
+
+
+    ############################## Modify data in the existing table (Com. 20) ###############################
+    def ModifyDataInTable(self,tablename, file=None):
 
         if file != None:
             '''Replace "Sheet1" with actual sheet name in below expression'''
+            sheetname = input('Please enter the name of the sheet: ')
             file_dict = pd.read_excel(file,
                                     sheet_name=sheetname,
                                     keep_default_na=False).to_dict()
@@ -391,7 +413,7 @@ class DataGen:
         for tblnm in self.Replacement_Dict:
             for colname in self.Replacement_Dict[tblnm]:
                 self.SwapColumnData(self.All_Table_Key_Dict[tblnm][colname],self.Replacement_Dict[tblnm][colname])
-    ############################################# End of Com. 20 #############################################
+    ############################################# End of Com. 20 ##############################################
 
 
 
@@ -413,18 +435,19 @@ class DataGen:
         while option.upper() != 'EXIT':
             option = input('Please enter an option:').upper()
             if (option == '1'):
-                self.ModifyDataInTable(input('Please enter the name of the table'))
+                self.ModifyDataInTable(input('Please enter the name of the table: '))
             elif (option == '2'):
                 file = input(
-                    'Please enter the complete location of the file with file name included'
+                    'Please enter the complete location of the file with file name included: '
                 )
-                self.ModifyDataInTable(input('Please enter the name of the table'),
+                self.ModifyDataInTable(input('Please enter the name of the table you want modified: '),
                                 file)
             elif (option == '3'):
                 None
             else:
                 break
     ############################################# End of Com. 21 #############################################
+
 
 
     ###################################### Create table flow (Com. 22) ######################################
