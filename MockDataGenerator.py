@@ -18,21 +18,19 @@ class DataGen:
 
     ################################## Check if folder/file exists (Com. 3) ##################################
     def Folder_Check(self):
-        
-        file_location = '\\'.join(self.fileloc.split('\\')[:-1]) + '\\Output_File\\'
-        CHECK_FOLDER = os.path.isdir(file_location)
+        CHECK_FOLDER = os.path.isdir(self.output_file_location)
         if not CHECK_FOLDER:
-            os.makedirs(file_location)
-            print("created folder : ", file_location)
+            os.makedirs(self.output_file_location)
+            print("created folder : ", self.output_file_location)
 
         else:
-            print('"' + file_location + '"' + " folder already exists.")
+            print('"' + self.output_file_location + '"' + " folder already exists.")
     ############################################# End of Com. 3 #############################################
 
     
 
     ######################### Seed function to generate true random number (Com. 4) #########################
-    def sys_rand_seed():
+    def sys_rand_seed(self):
         return int(tm.time() * 100000000000) % 100000000000
     ############################################# End of Com. 4 #############################################
 
@@ -43,6 +41,7 @@ class DataGen:
         
         self.fileloc =  'C:\Work\Python\Mock Data Generator\Mock Data Generator - Metadata File.xlsx'#input('Please enter the Location of the Excel file: ')
         self.sheetname = 'Column Metadata'#input('Please enter the sheet name: ')
+        self.output_file_location = '\\'.join(self.fileloc.split('\\')[:-1]) + '\\Output_File\\'
         self.Folder_Check()
         
         self.Metadata_df = pd.read_excel(self.fileloc,sheet_name=self.sheetname,keep_default_na=False)
@@ -76,7 +75,7 @@ class DataGen:
         max_age = srow["Max Value"] if srow["Max Value"] != '' or type(
             srow["Max Value"]) != str else 70
 
-        self.Gen_Serialized_Value(self, dim_df, srow["No of Rows"], min_age, max_age)
+        self.Gen_Serialized_Value(dim_df, srow["No of Rows"], min_age, max_age)
         #for index in range(srow["No of Rows"]):
         #    rn.seed(self.sys_rand_seed() + index)
         #    dim_df[index] = int(rn.randint((min_age), (max_age)))
@@ -177,7 +176,7 @@ class DataGen:
                     min_index = 1
                     max_index = self.All_Table_Key_Dict[parent_table][parent_column].max()
                 
-                self.Gen_Serialized_Value(self, dim_df, total_rows, min_index, max_index)
+                self.Gen_Serialized_Value(dim_df, total_rows, min_index, max_index)
                 #for index in range(total_rows):
                 #    # This loop will fill the data frame with the total number of rows as defined for the table
                 #    rn.seed(self.sys_rand_seed() + index)
@@ -207,7 +206,7 @@ class DataGen:
         min_value = srow["Min Value"]
         max_value = srow["Max Value"]
         
-        self.Gen_Serialized_Value(self, fact_df, srow["No of Rows"], min_value, max_value)
+        self.Gen_Serialized_Value(fact_df, srow["No of Rows"], min_value, max_value)
         #for index in range(srow["No of Rows"]):
         #    rn.seed(self.sys_rand_seed() + index)
         #    fact_df[index] = int(rn.randint(min_value, max_value))
@@ -216,8 +215,280 @@ class DataGen:
     ############################################# End of Com. 15 #############################################
 
 
-    
+    ####################### Create a multiple columns following a Hierarchy (Com. 16) #######################
+    def Create_Hier_Columns(self, srow):
+        counter = 1  
+        max_value = 0
+        temp_dict = {}
+        total_row = srow['No of Rows'].unique()[0]
+        temp_df = {}
+        srow = srow.sort_values('Hierarchy Rank')
+        #Create a dictionary with the column names
+        #Use this dictionary to fill in and create the actual database
+        for index, row in srow.iterrows():
+            temp_dict[str(row["Column Name"])] = self.Create_Dim_Column(row, nRows=row['Number of Unique Values'])
+
+        for key in temp_dict:
+
+            temp_df[key] = {}
+            min_value = 1
+            max_value = (len(temp_dict[key]))
+
+            if (max_value < total_row or max_value >
+                    total_row):  # This loop is for parent columns mostly
+
+                for index in range(total_row):
+                    rn.seed(self.sys_rand_seed() + index)
+                    lkup_index = int(rn.randint(min_value, max_value) - 1)
+                    temp_df[key][index] = temp_dict[key][lkup_index]
+
+            else:
+                for index in range(total_row):
+                    temp_df[key][index] = temp_dict[key][index]
+        return temp_df
+    ############################################# End of Com. 16 #############################################
+
+
+
+    ################# Replace Data in target column using src_val: tgt_val format (Com. 17) #################
+    def SwapColumnData(self, tgtcol, repcol):
+        for r_index, r_value in repcol.items():
+            for t_index, t_value in tgtcol.items():
+                tgtcol[
+                    t_index] = r_value if r_index == t_value else tgtcol[t_index]
+        return tgtcol
+    ############################################# End of Com. 17 #############################################
+
+
+
+    ################### Create a Dim Table using and merging individual columns (Com. 18) ###################
+    def Create_Dim_Table(self, table_name):  #Converting DF to Dict pending
+        temp_meta = self.Dim_Tables[self.Dim_Tables['Table Name'] == table_name]
+        temp_df = {}
+
+        for index, row in temp_meta.iterrows():
+
+            if (row['Structural Category'] == 'ID'):
+                temp_df[row['Column Name']] = self.Create_ID_Column(row)
+
+            elif (row['Structural Category'] == 'Dimension'):
+                temp_df[row['Column Name']] = self.Create_Dim_Column(row)
+
+            elif (row['Structural Category'] == 'Hierarchy'):
+
+                if row['Column Name'] in temp_df.keys():
+                    continue
+
+                else:
+                    hier_temp = self.Create_Hier_Columns(self.Dim_Tables[
+                        self.Dim_Tables['Hierarchy Name'] == row['Hierarchy Name']])
+                    for key in hier_temp:
+                        temp_df[key] = hier_temp[key]
+
+            else:
+                print("End of loop or exception")
+        return temp_df
+    ############################################# End of Com. 18 #############################################
+
+
+
+    ######################## Create Fact Table in the same way as Dim Table (Com. 19) ########################
+    def Create_Fact_Table(self, table_name):
+        temp_meta = self.Fact_Tables[self.Fact_Tables['Table Name'] == table_name]
+        temp_df = {}
+
+        for index, row in temp_meta.iterrows():
+
+            if (row['Structural Category'] == 'Fact'):
+                temp_df[row['Column Name']] = self.Create_Fact_Column(row)
+
+            elif (row['Structural Category'] == 'Dimension'):
+                temp_df[row['Column Name']] = self.Create_Dim_Column(row)
+
+            else:
+                print("End of loop or exception", )
+        return temp_df
+    ############################################# End of Com. 19 #############################################
+
+
+
+    ############################## Modify data in the existing table (Com. 20) ##############################
+    def ModifyDataInTable(self,tablename, file=None, sheetname = 'Sheet1'):
+
+        if file != None:
+            '''Replace "Sheet1" with actual sheet name in below expression'''
+            file_dict = pd.read_excel(file,
+                                    sheet_name=sheetname,
+                                    keep_default_na=False).to_dict()
+            file_flag = 1
+        else:
+            file_flag = 0
+        self.Replacement_Dict[tablename] = {}
+        temp_df = {}
+
+        # Check for Table exist
+        if tablename in self.All_Table_Key_Dict.keys():
+            self.Distinct_Value_Set[tablename] = self.Generate_Unique_Set(
+                self.All_Table_Key_Dict[tablename])
+        else:
+            print('Table does not exist')
+            return None
+
+
+        #Find unique value within a dictionary
+        temp_df = self.Generate_Unique_Set(self.All_Table_Key_Dict[tablename])
+
+
+        print('\n A dictionary with unique value has been prepared\n')
+        print(
+            'We will now begin to modify the data. Please help us with the below details\n'
+        )
+
+        #Start of Temp Table modification part
+        if file_flag == 1:
+            for col_name in file_dict:
+                self.Replacement_Dict[tablename][col_name] = {}
+                for index, value in temp_df[col_name].items():
+                    self.Replacement_Dict[tablename][col_name][value] = file_dict[
+                        col_name][index]
+                    self.Distinct_Value_Set[tablename][col_name][index] = file_dict[
+                        col_name][index]
+        else:
+            option = input(
+                'Type 1: If you want to modify a specific column\nType 2: If you want to modify the data in the entire table : '
+            )
+
+            while (option.upper() != 'EXIT'):
+                if option == '1':
+                    col_name = input(
+                        'Please enter the name of the column you would like to modify : '
+                    )
+                    self.Replacement_Dict[tablename][col_name] = {}
+                    for index, value in temp_df[col_name].items():
+                        self.Replacement_Dict[tablename][col_name][value] = input(
+                            "\nPlease enter a replacement for the value '{}' : ".
+                            format(value))
+                        self.Distinct_Value_Set[tablename][col_name][
+                            index] = self.Replacement_Dict[tablename][col_name][value]
+
+                elif option == '2':
+                    for col_name in self.All_Table_Key_Dict[tablename]:
+                        self.Replacement_Dict[tablename][col_name] = {}
+                        for index, value in temp_df[col_name].items():
+                            self.Replacement_Dict[tablename][col_name][value] = input(
+                                "\nPlease enter a replacement for the value '{}' : "
+                                .format(value))
+                            self.Distinct_Value_Set[tablename][col_name][
+                                index] = self.Replacement_Dict[tablename][col_name][
+                                    value]
+
+                else:
+                    print('\nPlease enter a value option or type EXIT to exit')
+
+                option = input('\nPlease type in your option : ')
+
+        #Use Distinct value table to fill original table
+        for tblnm in self.Replacement_Dict:
+            for colname in self.Replacement_Dict[tblnm]:
+                self.SwapColumnData(self.All_Table_Key_Dict[tblnm][colname],self.Replacement_Dict[tblnm][colname])
+    ############################################# End of Com. 20 #############################################
+
+
+
+    ################################### Edit Mode with a sub-menu (Com. 21) ###################################
+    def Edit_Mode(self):
+        print('''
+        Welcome! You have enter edit mode
+        Below option can be used to modify data in the current version
+        
+        1. Data within the table (Option prefered for Dim Table)
+        2. Data using a config file (Completed)
+        3. The Algo used to change the trend (behavior of fact) data (Future Feature)
+        ''')
+        '''While the user does not type exit the program will continue
+        '''
+
+        option = 'continue'
+
+        while option.upper() != 'EXIT':
+            option = input('Please enter an option:').upper()
+            if (option == '1'):
+                self.ModifyDataInTable(input('Please enter the name of the table'))
+            elif (option == '2'):
+                file = input(
+                    'Please enter the complete location of the file with file name included'
+                )
+                self.ModifyDataInTable(input('Please enter the name of the table'),
+                                file)
+            elif (option == '3'):
+                None
+            else:
+                break
+    ############################################# End of Com. 21 #############################################
+
+
+    ###################################### Create table flow (Com. 22) ######################################
+    def CreateTables(self):
+        for a in self.Dim_Tables["Table Name"].unique():
+            self.All_Table_Key_Dict[a] = self.Create_Dim_Table(a)
+
+        for a in self.Fact_Tables["Table Name"].unique():
+            self.All_Table_Key_Dict[a] = self.Create_Fact_Table(a)
+    ############################################# End of Com. 22 #############################################
+
+
+
+    ###################### View the data that was created using the metadata (Com. 23) ######################
+    def ViewTableData(self):
+        print(
+            "Below the the tables that have been created using the metadata file")
+        for key in self.All_Table_Key_Dict:
+            print(key, ':\n', self.All_Table_Key_Dict[key], end='\n\n\n', sep='')
+    ############################################# End of Com. 23 ############################################
+
+
+
+    ########################### Export Data into excel and other targets (Com. 24) ###########################
+    def ExportData(self):
+        for tablename in self.All_Table_Key_Dict:
+            temp_ex_df = pd.DataFrame(
+                data=self.All_Table_Key_Dict[tablename])
+            temp_ex_df.to_excel(self.output_file_location + tablename + ".xlsx")
+    ############################################# End of Com. 24 #############################################
+
+
+
+
+    def main(self):
+        print('''Welcome!
+        This is a mock data generator program. This program will create tables present
+        There are 4 functionalities this program will provide
+        1.\tGenerate table structure and populate it with mock data
+        2.\tAllow user to modify the dataset once the values are generated
+        3.\tView Data
+        4.\tExport the files and config files at the end of the program flow.
+        EXIT\tEnd the program
+        ''')
+        option = input('Please enter an option: ').upper()
+
+        while(option.upper() != 'EXIT'):
+            if(option == '1'):
+                self.CreateTables()
+                print('Tables have been created')
+            elif(option == '2'):
+                self.Edit_Mode()
+                print('Tables have been modified')
+            elif(option == '3'):
+                self.ViewTableData()
+            elif(option == '4'):
+                self.ExportData()
+                print('Data has been exported')
+            else:
+                print('Could not recognize the option entered')
+            
+            option = input('\nBack into Main Menu\n 1\t- Create table\n 2\t- Edit Tables\n 3\t- View Data\n 4\t- Export Data\n EXIT\t- End the program\n Please enter an option or type EXIT to end program : ')
 
 ############################################# End of Com. 2 #############################################
 
-
+D1 = DataGen()
+D1.main()
