@@ -458,8 +458,8 @@ class DataGen:
 
 
 
-
-    def main(self):
+    ###################### Main Menu Function to execute all master function (Com. 25) ######################
+    def MainMenu(self):
         print('''Welcome!
         This is a mock data generator program. This program will create tables present
         There are 4 functionalities this program will provide
@@ -487,8 +487,17 @@ class DataGen:
                 print('Could not recognize the option entered')
             
             option = input('\nBack into Main Menu\n 1\t- Create table\n 2\t- Edit Tables\n 3\t- View Data\n 4\t- Export Data\n EXIT\t- End the program\n Please enter an option or type EXIT to end program : ')
+    ############################################# End of Com. 25 #############################################
 
+
+def main():
+    D1 = DataGen
+    D1.MainMenu()
+
+
+if __name__ == "main":
+    main()
+    
 ############################################# End of Com. 2 #############################################
 
-D1 = DataGen()
-D1.main()
+
