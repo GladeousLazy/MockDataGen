@@ -461,14 +461,14 @@ class DataGen:
     ###################### Main Menu Function to execute all master function (Com. 25) ######################
     def MainMenu(self):
         print('''Welcome!
-        This is a mock data generator program. This program will create tables present
-        There are 4 functionalities this program will provide
-        1.\tGenerate table structure and populate it with mock data
-        2.\tAllow user to modify the dataset once the values are generated
-        3.\tView Data
-        4.\tExport the files and config files at the end of the program flow.
-        EXIT\tEnd the program
-        ''')
+This is a mock data generator program. This program will create tables present
+There are 4 functionalities this program will provide
+1.\tGenerate table structure and populate it with mock data
+2.\tAllow user to modify the dataset once the values are generated
+3.\tView Data
+4.\tExport the files and config files at the end of the program flow.
+EXIT\tEnd the program
+''')
         option = input('Please enter an option: ').upper()
 
         while(option.upper() != 'EXIT'):
