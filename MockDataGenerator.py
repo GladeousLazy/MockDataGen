@@ -117,7 +117,7 @@ class DataGen:
             srow["Max Value"]) != str else srow["Number of Unique Values"] if type(
                 srow["Number of Unique Values"]) != str else srow["No of Rows"]
         total_rows = nRows if nRows != None else srow["No of Rows"]
-        print(default_label, max_value, sep= '-')
+        #print(default_label, max_value, sep= '-')
         dim_df = {}
         ############################################# End of Com. 10 #############################################
 
@@ -237,6 +237,7 @@ class DataGen:
 
                 for index in range(total_row):
                     rn.seed(self.sys_rand_seed() + index)
+                    #if (temp_dict[key][lkup_index] in temp_dict)
                     lkup_index = int(rn.randint(min_value, max_value) - 1)
                     temp_df[key][index] = temp_dict[key][lkup_index]
 
@@ -261,36 +262,36 @@ class DataGen:
 
     ################### Create a Dim Table using and merging individual columns (Com. 18) ###################
     def Create_Dim_Table(self, table_name):  #Converting DF to Dict pending
-        print('CDT1')
+        #print('CDT1')
         temp_meta = self.Dim_Tables[self.Dim_Tables['Table Name'] == table_name]
         temp_df = {}
 
         for index, row in temp_meta.iterrows():
-            print('CDTF')
+            #print('CDTF')
             if (row['Structural Category'] == 'ID'):
                 temp_df[row['Column Name']] = self.Create_ID_Column(row)
-                print('CDTIF1')
+                #print('CDTIF1')
 
             elif (row['Structural Category'] == 'Dimension'):
                 temp_df[row['Column Name']] = self.Create_Dim_Column(row)
-                print('CDTIF2')
+                #print('CDTIF2')
 
             elif (row['Structural Category'] == 'Hierarchy'):
-                print('CDTIF3')
+                #print('CDTIF3')
                 if row['Column Name'] in temp_df.keys():
-                    print('CDTIF31')
+                    #print('CDTIF31')
                     continue
 
                 else:
-                    print('CDTIF32')
+                    #print('CDTIF32')
                     hier_temp = self.Create_Hier_Columns(self.Dim_Tables[
                         self.Dim_Tables['Hierarchy Name'] == row['Hierarchy Name']])
                     for key in hier_temp:
                         temp_df[key] = hier_temp[key]
 
             else:
-                print('CDTELSE1')
-                print("End of loop or exception")
+                #print('CDTELSE1')
+                print("End of loop or exception, Table Name : ",table_name, ", Column Name : ",row['Column Name'],sep = "")
         return temp_df
     ############################################# End of Com. 18 #############################################
 
@@ -308,9 +309,22 @@ class DataGen:
 
             elif (row['Structural Category'] == 'Dimension'):
                 temp_df[row['Column Name']] = self.Create_Dim_Column(row)
+            
+            elif (row['Structural Category'] == 'Hierarchy'):
+                #print('CDTIF3')
+                if row['Column Name'] in temp_df.keys():
+                    #print('CDTIF31')
+                    continue
+
+                else:
+                    #print('CDTIF32')
+                    hier_temp = self.Create_Hier_Columns(self.Fact_Tables[
+                        self.Fact_Tables['Hierarchy Name'] == row['Hierarchy Name']])
+                    for key in hier_temp:
+                        temp_df[key] = hier_temp[key]
 
             else:
-                print("End of loop or exception", )
+                print("End of loop or exception, Table Name : ",table_name, ", Column Name : ",row['Column Name'],sep = "")
         return temp_df
     ############################################# End of Com. 19 #############################################
 
@@ -495,6 +509,7 @@ class DataGen:
 
     ###################### Main Menu Function to execute all master function (Com. 25) ######################
     def MainMenu(self):
+        print(self.Dim_Tables, self.Fact_Tables, sep = '\n')
         print('''Welcome!
 This is a mock data generator program. This program will create tables present
 There are 4 functionalities this program will provide
@@ -539,3 +554,8 @@ def main():
 if __name__ == "main":
     main()
 ############################################# End of Com. 26 #############################################
+
+#def main():
+D1 = DataGen()
+D1.MainMenu()
+
