@@ -76,9 +76,6 @@ class DataGen:
             srow["Max Value"]) != str else 70
 
         self.Gen_Serialized_Value(dim_df, srow["No of Rows"], min_age, max_age)
-        #for index in range(srow["No of Rows"]):
-        #    rn.seed(self.sys_rand_seed() + index)
-        #    dim_df[index] = int(rn.randint((min_age), (max_age)))
     ############################################# End of Com. 7 #############################################
     
     
@@ -117,8 +114,10 @@ class DataGen:
             srow["Length of id with preceding zero"]) != str else 0
         min_value = srow["Min Value"] if type(srow["Min Value"]) != str else 0
         max_value = srow["Max Value"] if type(
-            srow["Max Value"]) != str else srow["No of Rows"]
+            srow["Max Value"]) != str else srow["Number of Unique Values"] if type(
+                srow["Number of Unique Values"]) != str else srow["No of Rows"]
         total_rows = nRows if nRows != None else srow["No of Rows"]
+        print(default_label, max_value, sep= '-')
         dim_df = {}
         ############################################# End of Com. 10 #############################################
 
@@ -157,6 +156,8 @@ class DataGen:
                 self.Generate_Age(dim_df, srow)
         ############################################# End of Col. 12 #############################################
 
+
+
         ############################## Scenario where PK or FK is present (Col. 13) ##############################
         elif (srow["Key type PK or FK"] != ''):
             if (srow["Key type PK or FK"] == 'FK'):
@@ -177,14 +178,11 @@ class DataGen:
                     max_index = self.All_Table_Key_Dict[parent_table][parent_column].max()
                 
                 self.Gen_Serialized_Value(dim_df, total_rows, min_index, max_index)
-                #for index in range(total_rows):
-                #    # This loop will fill the data frame with the total number of rows as defined for the table
-                #    rn.seed(self.sys_rand_seed() + index)
-                #    dim_df[index] = rn.randint(min_index, max_index)
 
             elif (srow["Key type PK or FK"] == 'PK'):
                 dim_df = self.Create_ID_Column(srow)
         ############################################# End of Col. 13 #############################################
+
 
 
         ########################## Else use the header name to generate value (Com. 14) ##########################
@@ -196,9 +194,11 @@ class DataGen:
         ############################################# End of Com. 14 #############################################
 
 
+
     ############################################# End of Com. 9 #############################################
     
     
+
     #### Create a Fact Column also handle the Model Selection and apply that logic to the data (Com. 15) ####
     def Create_Fact_Column(self, srow):
         fact_df = {}
@@ -207,12 +207,10 @@ class DataGen:
         max_value = srow["Max Value"]
         
         self.Gen_Serialized_Value(fact_df, srow["No of Rows"], min_value, max_value)
-        #for index in range(srow["No of Rows"]):
-        #    rn.seed(self.sys_rand_seed() + index)
-        #    fact_df[index] = int(rn.randint(min_value, max_value))
 
         return fact_df
     ############################################# End of Com. 15 #############################################
+
 
 
     ####################### Create a multiple columns following a Hierarchy (Com. 16) #######################
@@ -263,29 +261,35 @@ class DataGen:
 
     ################### Create a Dim Table using and merging individual columns (Com. 18) ###################
     def Create_Dim_Table(self, table_name):  #Converting DF to Dict pending
+        print('CDT1')
         temp_meta = self.Dim_Tables[self.Dim_Tables['Table Name'] == table_name]
         temp_df = {}
 
         for index, row in temp_meta.iterrows():
-
+            print('CDTF')
             if (row['Structural Category'] == 'ID'):
                 temp_df[row['Column Name']] = self.Create_ID_Column(row)
+                print('CDTIF1')
 
             elif (row['Structural Category'] == 'Dimension'):
                 temp_df[row['Column Name']] = self.Create_Dim_Column(row)
+                print('CDTIF2')
 
             elif (row['Structural Category'] == 'Hierarchy'):
-
+                print('CDTIF3')
                 if row['Column Name'] in temp_df.keys():
+                    print('CDTIF31')
                     continue
 
                 else:
+                    print('CDTIF32')
                     hier_temp = self.Create_Hier_Columns(self.Dim_Tables[
                         self.Dim_Tables['Hierarchy Name'] == row['Hierarchy Name']])
                     for key in hier_temp:
                         temp_df[key] = hier_temp[key]
 
             else:
+                print('CDTELSE1')
                 print("End of loop or exception")
         return temp_df
     ############################################# End of Com. 18 #############################################
