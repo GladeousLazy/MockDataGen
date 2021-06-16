@@ -6,6 +6,7 @@ import time as tm
 import numpy as np
 import os
 import math
+import anytree  as at
 from inspect import currentframe, getframeinfo  #temp_dict,getframeinfo(currentframe()).lineno
 from IPython.display import clear_output
 ############################################# End of Com. 1 #############################################
@@ -113,9 +114,10 @@ class DataGen:
         lenght = srow["Length of id with preceding zero"] if type(
             srow["Length of id with preceding zero"]) != str else 0
         min_value = srow["Min Value"] if type(srow["Min Value"]) != str else 0
-        max_value = srow["Max Value"] if type(
-            srow["Max Value"]) != str else srow["Number of Unique Values"] if type(
-                srow["Number of Unique Values"]) != str else srow["No of Rows"]
+        max_value = srow["Max Value"] \
+            if type(srow["Max Value"]) != str else \
+            srow["Number of Unique Values"] if type(srow["Number of Unique Values"]) != str else\
+            srow["No of Rows"]
         total_rows = nRows if nRows != None else srow["No of Rows"]
         #print(default_label, max_value, sep= '-')
         dim_df = {}
@@ -139,10 +141,11 @@ class DataGen:
             #Preceding zero cases with suffix and prefix
             elif (len(srow["S or P Value"]) + len(str(max_value)) <= lenght):
                 for index in range(total_rows):
-                    rem_zero = lenght - (len(srow["S or P Value"]) +
-                                        len(str(min_value + index + 1)))
+                    rn.seed(self.sys_rand_seed() + index)
+                    randnum = rn.randint((min_value), (max_value))
+                    rem_zero = lenght - (len(srow["S or P Value"]) + len(str(randnum + 1)))
                     zero_str = str(pow(10, rem_zero))[(rem_zero * -1):]
-                    dim_df[index] = prefix + zero_str + str(min_value + index + 1) + suffix
+                    dim_df[index] = prefix + zero_str + str(randnum + 1) + suffix
         ############################################# End of Com. 11 #############################################
 
 
@@ -217,34 +220,82 @@ class DataGen:
     def Create_Hier_Columns(self, srow):
         counter = 1  
         max_value = 0
-        temp_dict = {}
+        unique_val_dict = {}
         total_row = srow['No of Rows'].unique()[0]
         temp_df = {}
         srow = srow.sort_values('Hierarchy Rank')
         #Create a dictionary with the column names
         #Use this dictionary to fill in and create the actual database
         for index, row in srow.iterrows():
-            temp_dict[str(row["Column Name"])] = self.Create_Dim_Column(row, nRows=row['Number of Unique Values'])
+            unique_val_dict[str(row["Column Name"])] = self.Create_Dim_Column(row, nRows=row['Number of Unique Values'])
 
-        for key in temp_dict:
+        
+
+        #table = {#"Root":{0:"Root"},
+        #        "Category": {0:"Cat1",1:"Cat2",2:"Cat3"},
+        #        "SubCat":{0:"SubCat1",1:"SubCat2",2:"SubCat3",3:"SubCat4",4:"SubCat5",5:"SubCat6",6:"SubCat7",7:"SubCat8"},
+        #        "Product": {0:"Prod0",1:"Prod1",2:"Prod2",3:"Prod3",4:"Prod4",5:"Prod5",6:"Prod6",7:"Prod7",8:"Prod8",9:"Prod9",10:"Prod10",11:"Prod11",12:"Prod12",13:"Prod13",14:"Prod14",15:"Prod15",16:"Prod16",17:"Prod17"}
+        #        }
+        #temp_df[key] = {}
+        #min_value = 1
+        #max_value = (len(unique_val_dict[key]))
+        root = at.Node("Root")
+
+        allkeys = list(unique_val_dict.keys())                                                                                              #list(table.keys())
+        col_data = pd.DataFrame(columns = allkeys)
+        #def GenMasterTable(table):
+        totalcount = []
+
+
+        for i in range(len(allkeys)):
+            totalcount.append(len(list(unique_val_dict[allkeys[i]].values())))                                                              #totalcount.append(len(list(table[allkeys[i]].values())))   
+            for index, value in unique_val_dict[allkeys[i]].items():                                                                        #for index, value in table[allkeys[i]].items():
+                if i == 0:
+                    at.Node(value, parent = root)
+                else:
+                    at.Node(value, parent = at.findall_by_attr(root, unique_val_dict[allkeys[i-1]][rn.randrange(0,totalcount[i-1])])[0])    #at.Node(value, parent = at.findall_by_attr(root, table[allkeys[i-1]][rn.randrange(0,totalcount[i-1])])[0])
+                if allkeys[i] == allkeys[-1]:
+                    col = str(at.findall_by_attr(root, value)[0]).replace("Node('/Root/","").replace("')","")
+                    for inner in range(len(allkeys)):
+                        col_data.loc[index, allkeys[inner]] = col.split('/')[inner]
+        
+        min_value = 0                                                                                                                                    #col_data = col_data.to_dict()  
+        max_value = max(totalcount) - 1                                                                                                                                #print(col_data)
+        final_df = pd.DataFrame()
+        
+        for index in range(total_row):
+            rn.seed(self.sys_rand_seed() + index)
+            final_df[index] = col_data.loc[rn.randint(min_value, max_value)]
+        
+        final_df = final_df.T
+        
+        return final_df.to_dict()
+        """
+        #Previous logic to create hierarchy. It wasn't giving proper 1:M relationship
+        
+        for key in unique_val_dict:
 
             temp_df[key] = {}
             min_value = 1
-            max_value = (len(temp_dict[key]))
+            max_value = (len(unique_val_dict[key]))
 
             if (max_value < total_row or max_value >
                     total_row):  # This loop is for parent columns mostly
 
                 for index in range(total_row):
                     rn.seed(self.sys_rand_seed() + index)
-                    #if (temp_dict[key][lkup_index] in temp_dict)
+                    #if (temp_dict[key][lkup_index] in temp_dict.values()):
+                        
+                    #else:
                     lkup_index = int(rn.randint(min_value, max_value) - 1)
-                    temp_df[key][index] = temp_dict[key][lkup_index]
+                    temp_df[key][index] = unique_val_dict[key][lkup_index]
 
             else:
                 for index in range(total_row):
-                    temp_df[key][index] = temp_dict[key][index]
+                    temp_df[key][index] = unique_val_dict[key][index]
         return temp_df
+
+        """
     ############################################# End of Com. 16 #############################################
 
 
@@ -306,6 +357,9 @@ class DataGen:
 
             if (row['Structural Category'] == 'Fact'):
                 temp_df[row['Column Name']] = self.Create_Fact_Column(row)
+            
+            elif (row['Structural Category'] == 'ID'):
+                temp_df[row['Column Name']] = self.Create_ID_Column(row)
 
             elif (row['Structural Category'] == 'Dimension'):
                 temp_df[row['Column Name']] = self.Create_Dim_Column(row)
@@ -500,8 +554,7 @@ class DataGen:
     ########################### Export Data into excel and other targets (Com. 24) ###########################
     def ExportData(self):
         for tablename in self.All_Table_Key_Dict:
-            temp_ex_df = pd.DataFrame(
-                data=self.All_Table_Key_Dict[tablename])
+            temp_ex_df = pd.DataFrame(data=self.All_Table_Key_Dict[tablename])
             temp_ex_df.to_excel(self.output_file_location + tablename + ".xlsx")
     ############################################# End of Com. 24 #############################################
 
