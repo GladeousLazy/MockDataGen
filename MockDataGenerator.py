@@ -8,13 +8,13 @@ import os
 import math
 import anytree  as at
 from inspect import currentframe, getframeinfo  #temp_dict,getframeinfo(currentframe()).lineno
-from IPython.display import clear_output
+#from IPython.display import clear_output
 ############################################# End of Com. 1 #############################################
 
 
 ################################ Data Generator Class Definition (Com. 2) ###############################
 class DataGen:
-        
+
 
 
     ################################## Check if folder/file exists (Com. 3) ##################################
@@ -28,7 +28,7 @@ class DataGen:
             print('"' + self.output_file_location + '"' + " folder already exists./n The data in the folder will be overwritten")
     ############################################# End of Com. 3 #############################################
 
-    
+
 
     ######################### Seed function to generate true random number (Com. 4) #########################
     def sys_rand_seed(self):
@@ -39,16 +39,16 @@ class DataGen:
 
     ###################################### Initialize Function (Com. 5) ######################################
     def __init__(self):
-        
+
         self.fileloc =  input('Please enter the Location of the Excel file: ')#'C:\Work\Python\Mock Data Generator\Mock Data Generator - Metadata File.xlsx'#
         self.sheetname = input('Please enter the sheet name: ')#'Column Metadata'#
         self.output_file_location = '\\'.join(self.fileloc.split('\\')[:-1]) + '\\Output_File\\'
         self.Folder_Check()
-        
+
         self.Metadata_df = pd.read_excel(self.fileloc,sheet_name=self.sheetname,keep_default_na=False)
         self.Dim_Tables = self.Metadata_df[self.Metadata_df['Dim or Fact'] == '1 Dim']
         self.Fact_Tables = self.Metadata_df[self.Metadata_df['Dim or Fact'] == '2 Fact']
-        
+
         self.All_Table_Data_Dict = {}
         self.All_Table_Key_Dict = {}
         self.Distinct_Value_Set = {}
@@ -78,8 +78,8 @@ class DataGen:
 
         self.Gen_Serialized_Value(dim_df, srow["No of Rows"], min_age, max_age)
     ############################################# End of Com. 7 #############################################
-    
-    
+
+
     ########################### Generate ID Value usually a Serial Number (Com. 8) ###########################
     def Create_ID_Column(self, srow):
         id_df = {}
@@ -93,8 +93,8 @@ class DataGen:
         return id_df
     ############################################# End of Com. 8 #############################################
 
-    
-    
+
+
     ############################## Generate Dimension/Discrete Values (Com. 9) ##############################
     def Create_Dim_Column(self, srow, nRows=None):
         """
@@ -127,13 +127,13 @@ class DataGen:
         #################### Handle leading zero or scenario where length is defined (Com.11) ####################
         if (srow["Suffix or Prefix"].upper() == 'P'
                 or srow["Suffix or Prefix"].upper() == 'S' or lenght > 0):
-            
+
             #Scenario where s/p value is larger than the total lenght of the value
-            if ((len(srow["S or P Value"]) + len(str(max_value))) > lenght):  
+            if ((len(srow["S or P Value"]) + len(str(max_value))) > lenght):
                 for index in range(total_rows):
 
                     dim_df[index] = prefix + str(index + 1) + suffix
-            
+
             #Scenario if no suffix or prefix is present
             elif (len(srow["S or P Value"]) == 0 or len(srow["Suffix or Prefix"]) == 0):
                 for index in range(total_rows):
@@ -179,7 +179,7 @@ class DataGen:
                     self.Create_Dim_Table(parent_table)
                     min_index = 1
                     max_index = self.All_Table_Key_Dict[parent_table][parent_column].max()
-                
+
                 self.Gen_Serialized_Value(dim_df, total_rows, min_index, max_index)
 
             elif (srow["Key type PK or FK"] == 'PK'):
@@ -199,8 +199,8 @@ class DataGen:
 
 
     ############################################# End of Com. 9 #############################################
-    
-    
+
+
 
     #### Create a Fact Column also handle the Model Selection and apply that logic to the data (Com. 15) ####
     def Create_Fact_Column(self, srow):
@@ -208,7 +208,7 @@ class DataGen:
 
         min_value = srow["Min Value"]
         max_value = srow["Max Value"]
-        
+
         self.Gen_Serialized_Value(fact_df, srow["No of Rows"], min_value, max_value)
 
         return fact_df
@@ -218,7 +218,7 @@ class DataGen:
 
     ####################### Create a multiple columns following a Hierarchy (Com. 16) #######################
     def Create_Hier_Columns(self, srow):
-        counter = 1  
+        counter = 1
         max_value = 0
         unique_val_dict = {}
         total_row = srow['No of Rows'].unique()[0]
@@ -229,7 +229,7 @@ class DataGen:
         for index, row in srow.iterrows():
             unique_val_dict[str(row["Column Name"])] = self.Create_Dim_Column(row, nRows=row['Number of Unique Values'])
 
-        
+
 
         #table = {#"Root":{0:"Root"},
         #        "Category": {0:"Cat1",1:"Cat2",2:"Cat3"},
@@ -248,7 +248,7 @@ class DataGen:
 
 
         for i in range(len(allkeys)):
-            totalcount.append(len(list(unique_val_dict[allkeys[i]].values())))                                                              #totalcount.append(len(list(table[allkeys[i]].values())))   
+            totalcount.append(len(list(unique_val_dict[allkeys[i]].values())))                                                              #totalcount.append(len(list(table[allkeys[i]].values())))
             for index, value in unique_val_dict[allkeys[i]].items():                                                                        #for index, value in table[allkeys[i]].items():
                 if i == 0:
                     at.Node(value, parent = root)
@@ -258,21 +258,21 @@ class DataGen:
                     col = str(at.findall_by_attr(root, value)[0]).replace("Node('/Root/","").replace("')","")
                     for inner in range(len(allkeys)):
                         col_data.loc[index, allkeys[inner]] = col.split('/')[inner]
-        
-        min_value = 0                                                                                                                                    #col_data = col_data.to_dict()  
+
+        min_value = 0                                                                                                                                    #col_data = col_data.to_dict()
         max_value = max(totalcount) - 1                                                                                                                                #print(col_data)
         final_df = pd.DataFrame()
-        
+
         for index in range(total_row):
             rn.seed(self.sys_rand_seed() + index)
             final_df[index] = col_data.loc[rn.randint(min_value, max_value)]
-        
+
         final_df = final_df.T
-        
+
         return final_df.to_dict()
         """
         #Previous logic to create hierarchy. It wasn't giving proper 1:M relationship
-        
+
         for key in unique_val_dict:
 
             temp_df[key] = {}
@@ -285,7 +285,7 @@ class DataGen:
                 for index in range(total_row):
                     rn.seed(self.sys_rand_seed() + index)
                     #if (temp_dict[key][lkup_index] in temp_dict.values()):
-                        
+
                     #else:
                     lkup_index = int(rn.randint(min_value, max_value) - 1)
                     temp_df[key][index] = unique_val_dict[key][lkup_index]
@@ -357,13 +357,13 @@ class DataGen:
 
             if (row['Structural Category'] == 'Fact'):
                 temp_df[row['Column Name']] = self.Create_Fact_Column(row)
-            
+
             elif (row['Structural Category'] == 'ID'):
                 temp_df[row['Column Name']] = self.Create_ID_Column(row)
 
             elif (row['Structural Category'] == 'Dimension'):
                 temp_df[row['Column Name']] = self.Create_Dim_Column(row)
-            
+
             elif (row['Structural Category'] == 'Hierarchy'):
                 #print('CDTIF3')
                 if row['Column Name'] in temp_df.keys():
@@ -383,7 +383,7 @@ class DataGen:
     ############################################# End of Com. 19 #############################################
 
 
-    
+
 
     ################################# Generate Unique Set of value (Com. 27) #################################
     def Generate_Unique_Set(self, datadict):
@@ -412,15 +412,15 @@ class DataGen:
 
             sheetname = input('Please enter the name of the sheet: ')
             file_dict = pd.read_excel(file,sheet_name=sheetname,keep_default_na=False)#.to_dict()
-            
-            
+
+
             #Check if the config file used is an export of this program and handle it
-            
+
             if(file_dict.iloc[:,0].name == 'Unnamed: 0'):
                 file_dict.drop('Unnamed: 0',axis='columns', inplace=True)
                 print('The config file is an output generated by this program.')
 
-            
+
             file_dict = file_dict.to_dict()
             file_flag = 1
         else:
@@ -502,7 +502,7 @@ class DataGen:
         print('''
         Welcome! You have enter edit mode
         Below option can be used to modify data in the current version
-        
+
         1. Data within the table (Option prefered for Dim Table)
         2. Data using a config file (Completed)
         3. The Algo used to change the trend (behavior of fact) data (Future Feature)
@@ -588,7 +588,7 @@ EXIT\tEnd the program
                 print('Data has been exported')
             else:
                 print('Could not recognize the option entered')
-            
+
             option = input('\nBack into Main Menu\n 1\t- Create table\n 2\t- Edit Tables\n 3\t- View Data\n 4\t- Export Data\n EXIT\t- End the program\n Please enter an option or type EXIT to end program : ')
     ############################################# End of Com. 25 #############################################
 
@@ -611,4 +611,3 @@ if __name__ == "main":
 #def main():
 D1 = DataGen()
 D1.MainMenu()
-
